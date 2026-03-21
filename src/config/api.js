@@ -5,6 +5,7 @@ const BASE_URL = 'http://localhost:3000';
 export const API_ENDPOINTS = {
   generate: `${BASE_URL}/api/generate`,
   posts: `${BASE_URL}/api/posts`,
+  ocr: `${BASE_URL}/api/ocr`, // 新增截图识别接口
 };
 
 export default BASE_URL;
