@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { View, StyleSheet, ScrollView, Platform, ToastAndroid, Keyboard, KeyboardAvoidingView } from 'react-native';
 import { Appbar, TextInput, Button, Card, Title, Paragraph, IconButton, useTheme, Snackbar } from 'react-native-paper';
 import * as ExpoClipboard from 'expo-clipboard';
+import { API_ENDPOINTS } from '../config/api';
 import { saveFavorite } from '../data/storage';
 
 const AiInteractionScreen = ({ navigation }) => {
@@ -11,31 +12,34 @@ const AiInteractionScreen = ({ navigation }) => {
   const [results, setResults] = useState(null);
   const [snackbarVisible, setSnackbarVisible] = useState(false);
 
-  // 这里的逻辑为模拟AI生成效果
-  // 若需真正智能回复，可在此处接入如 DeepSeek / Wenxin 等大模型API
-  const generateReply = () => {
+  const generateReply = async () => {
     if (!inputText.trim()) return;
     setLoading(true);
     Keyboard.dismiss();
 
-    setTimeout(() => {
-      let highTier = "";
-      let midTier = "";
+    try {
+      const response = await fetch(API_ENDPOINTS.generate, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ text: inputText }),
+      });
 
-      if (inputText.includes("加班") || inputText.includes("工作")) {
-        highTier = "老板，您看我这发际线，再加班可能就算工伤了，要不您先给我批个植发预算？";
-        midTier = "又加班？行啊，这是另外的价钱，没钱免谈。";
-      } else if (inputText.includes("胖") || inputText.includes("丑")) {
-        highTier = "好看的皮囊千篇一律，有趣的灵魂万里挑一，可惜您两样都没占。";
-        midTier = "我胖我吃你家大米了？管好你自己吧！";
+      if (!response.ok) throw new Error('网络响应不佳');
+
+      const data = await response.json();
+      setResults(data);
+    } catch (error) {
+      console.error(error);
+      if (Platform.OS === 'android') {
+        ToastAndroid.show('生成失败，请检查后端运行状态', ToastAndroid.SHORT);
       } else {
-        highTier = `对于您说的“${inputText}”，我觉得与其把时间花在争论这个上，不如多看几本书提升一下认知局限。`;
-        midTier = "对对对，你说的都对，那既然你这么懂，笔给你，你来写？";
+        setSnackbarVisible(true);
       }
-
-      setResults({ highTier, midTier });
+    } finally {
       setLoading(false);
-    }, 1500);
+    }
   };
 
   const copyToClipboard = async (text) => {
@@ -54,15 +58,18 @@ const AiInteractionScreen = ({ navigation }) => {
     }
   };
 
-  const ResultCard = ({ title, content, typeColor }) => (
-    <Card style={styles.resultCard}>
+  const ResultCard = ({ title, data, typeColor }) => (
+    <Card style={[styles.resultCard, { borderTopWidth: 4, borderTopColor: typeColor }]}>
       <Card.Content>
         <Title style={[styles.tierTitle, { color: typeColor }]}>{title}</Title>
-        <Paragraph style={styles.quoteText}>{content}</Paragraph>
+        <Paragraph style={styles.quoteText}>{data.content}</Paragraph>
+        <View style={styles.reasonBox}>
+          <Paragraph style={styles.reasonText}>{data.reason}</Paragraph>
+        </View>
       </Card.Content>
       <Card.Actions style={styles.actions}>
-        <IconButton icon="content-copy" color={theme.colors.primary} size={22} onPress={() => copyToClipboard(content)} />
-        <IconButton icon="heart-outline" color={theme.colors.accent} size={22} onPress={() => handleSave(content)} />
+        <IconButton icon="content-copy" color={theme.colors.primary} size={22} onPress={() => copyToClipboard(data.content)} />
+        <IconButton icon="heart-outline" color={theme.colors.accent} size={22} onPress={() => handleSave(data.content)} />
       </Card.Actions>
     </Card>
   );
@@ -80,7 +87,7 @@ const AiInteractionScreen = ({ navigation }) => {
 
       <ScrollView contentContainerStyle={styles.scrollContainer} keyboardShouldPersistTaps="handled">
         <Title style={styles.headerTitle}>对方说了什么？</Title>
-        <Paragraph style={styles.headerSubtitle}>输入对方的话，AI为你生成上等、中等两种反击策略</Paragraph>
+        <Paragraph style={styles.headerSubtitle}>输入对方的话，AI为您生成上、中、下三种维度的反击策略并深度分析</Paragraph>
 
         <TextInput
           mode="outlined"
@@ -101,14 +108,15 @@ const AiInteractionScreen = ({ navigation }) => {
           style={styles.button}
           contentStyle={styles.buttonContent}
         >
-          {loading ? '正在冥思苦想中...' : '一键生成回怼方案'}
+          {loading ? 'AI 正在深度思考中...' : '一键生成反击方案'}
         </Button>
 
         {results && (
           <View style={styles.resultsContainer}>
-            <Title style={styles.resultsHeader}>🔥 你的回怼武器库</Title>
-            <ResultCard title="上等回怼 (阴阳怪气/优雅暴击)" content={results.highTier} typeColor="#e74c3c" />
-            <ResultCard title="中等回怼 (简单直接/霸气侧漏)" content={results.midTier} typeColor="#e67e22" />
+            <Title style={styles.resultsHeader}>🔥 您的专属回怼弹药库</Title>
+            <ResultCard title="上等回怼 (优雅暴击/降维打击)" data={results.highTier} typeColor="#e74c3c" />
+            <ResultCard title="中等回怼 (简单直接/霸气侧漏)" data={results.midTier} typeColor="#e67e22" />
+            <ResultCard title="下等回怼 (情绪发泄/低级争吵)" data={results.lowTier} typeColor="#95a5a6" />
           </View>
         )}
       </ScrollView>
@@ -121,19 +129,21 @@ const AiInteractionScreen = ({ navigation }) => {
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f5f6fa' },
+  container: { flex: 1, backgroundColor: '#f1f2f6' },
   scrollContainer: { padding: 16, paddingBottom: 40 },
   headerTitle: { fontSize: 22, fontWeight: 'bold', color: '#2c3e50', marginTop: 10 },
-  headerSubtitle: { fontSize: 14, color: '#7f8c8d', marginBottom: 20 },
-  input: { backgroundColor: '#fff', marginBottom: 20 },
-  button: { borderRadius: 8, elevation: 2, backgroundColor: '#0fb9b1' },
+  headerSubtitle: { fontSize: 13, color: '#7f8c8d', marginBottom: 20 },
+  input: { backgroundColor: '#fff', marginBottom: 15 },
+  button: { borderRadius: 8, elevation: 2, backgroundColor: '#0fb9b1', marginBottom: 10 },
   buttonContent: { paddingVertical: 8 },
-  resultsContainer: { marginTop: 30 },
+  resultsContainer: { marginTop: 20 },
   resultsHeader: { fontSize: 18, fontWeight: 'bold', color: '#34495e', marginBottom: 15 },
-  resultCard: { marginBottom: 16, borderRadius: 12, elevation: 3, backgroundColor: '#fff', borderWidth: 1, borderColor: '#eee' },
+  resultCard: { marginBottom: 16, borderRadius: 12, elevation: 4, backgroundColor: '#fff' },
   tierTitle: { fontSize: 16, fontWeight: 'bold', marginBottom: 8 },
-  quoteText: { fontSize: 16, lineHeight: 24, color: '#2c3e50' },
-  actions: { justifyContent: 'flex-end', paddingTop: 0 }
+  quoteText: { fontSize: 16, lineHeight: 24, color: '#2c3e50', fontWeight: '500' },
+  reasonBox: { marginTop: 10, padding: 10, backgroundColor: '#f8f9fa', borderRadius: 6, borderLeftWidth: 3, borderLeftColor: '#3498db' },
+  reasonText: { fontSize: 13, color: '#555', lineHeight: 20 },
+  actions: { justifyContent: 'flex-end', paddingTop: 0, paddingBottom: 5 }
 });
 
 export default AiInteractionScreen;

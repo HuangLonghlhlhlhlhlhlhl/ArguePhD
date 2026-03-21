@@ -96,6 +96,19 @@ const HomeScreen = ({ navigation }) => {
               </TouchableOpacity>
             </View>
 
+            <TouchableOpacity activeOpacity={0.8} onPress={() => navigation.navigate('Competition')} style={{marginTop: 10}}>
+              <Card style={[styles.card, { backgroundColor: '#2f3542', borderWidth: 0 }]}>
+                 <Card.Title
+                    title="🏆 最强嘴贱大赛"
+                    titleStyle={{ color: '#ff4757', fontWeight: 'bold' }}
+                    subtitle="看看网友们是怎么让人破防的"
+                    subtitleStyle={{ color: '#ced6e0' }}
+                    left={(props) => <Avatar.Icon {...props} icon="fire" style={{ backgroundColor: '#ff4757' }} color="#fff" />}
+                    right={(props) => <IconButton {...props} icon="chevron-right" color="#fff" />}
+                  />
+              </Card>
+            </TouchableOpacity>
+
             <Title style={[styles.headerTitle, {marginTop: 20, fontSize: 18}]}>预设经典语录库</Title>
           </View>
         }

@@ -10,6 +10,7 @@ import TranslatorScreen from '../screens/TranslatorScreen';
 import MemeScreen from '../screens/MemeScreen';
 import SimulatorScreen from '../screens/SimulatorScreen';
 import CommunityScreen from '../screens/CommunityScreen';
+import CompetitionScreen from '../screens/CompetitionScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -25,6 +26,7 @@ const AppNavigator = () => {
         <Stack.Screen name="Meme" component={MemeScreen} />
         <Stack.Screen name="Simulator" component={SimulatorScreen} />
         <Stack.Screen name="Community" component={CommunityScreen} />
+        <Stack.Screen name="Competition" component={CompetitionScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );

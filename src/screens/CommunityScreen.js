@@ -1,22 +1,43 @@
-import React from 'react';
-import { View, StyleSheet, FlatList, TouchableOpacity } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, StyleSheet, FlatList, TouchableOpacity, RefreshControl } from 'react-native';
 import { Appbar, Card, Title, Paragraph, Avatar, IconButton } from 'react-native-paper';
-
-// Mock community data
-const mockPosts = [
-  { id: '1', author: '秃头小宝贝', avatar: 'face-man', content: '今天相亲，对方问我“你能接受我婚后不工作吗？” 我回：“你能接受我婚前就破产吗？”', upvotes: 12580, time: '2小时前' },
-  { id: '2', author: '打工魂', avatar: 'face-woman', content: '老板在群里说：大家要把公司当家。我回：好的爸爸，那零花钱什么时候发？', upvotes: 9852, time: '3小时前' },
-  { id: '3', author: '峡谷清道夫', avatar: 'robot', content: '队友说我打得菜，我直接回：“是啊，我这是下乡扶贫来了，没想到贫困户这么嚣张。”', upvotes: 7521, time: '5小时前' }
-];
+import { API_ENDPOINTS } from '../config/api';
 
 const CommunityScreen = ({ navigation }) => {
+  const [posts, setPosts] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const fetchPosts = async () => {
+    setLoading(true);
+    try {
+      const response = await fetch(API_ENDPOINTS.posts);
+      if (!response.ok) throw new Error('网络请求失败');
+      const data = await response.json();
+      setPosts(data);
+    } catch (error) {
+      console.error('Fetch posts error:', error);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchPosts();
+  }, []);
+
+  const onRefresh = () => {
+    setRefreshing(true);
+    fetchPosts();
+  };
 
   const renderPost = ({ item }) => (
     <Card style={styles.card}>
       <Card.Title
         title={item.author}
         subtitle={item.time}
-        left={(props) => <Avatar.Icon {...props} icon={item.avatar} style={{backgroundColor: '#e1b12c'}} />}
+        left={(props) => <Avatar.Icon {...props} icon={item.avatar || 'account'} style={{backgroundColor: '#e1b12c'}} />}
         right={(props) => <IconButton {...props} icon="dots-horizontal" onPress={() => {}} />}
       />
       <Card.Content>
@@ -41,10 +62,13 @@ const CommunityScreen = ({ navigation }) => {
       </Appbar.Header>
 
       <FlatList
-        data={mockPosts}
-        keyExtractor={item => item.id}
+        data={posts}
+        keyExtractor={item => item.id.toString()}
         renderItem={renderPost}
         contentContainerStyle={styles.listContainer}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#e1b12c']} />
+        }
       />
     </View>
   );
